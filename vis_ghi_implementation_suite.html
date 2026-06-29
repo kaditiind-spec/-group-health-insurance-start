@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIS - Group Health Insurance (GHI) Launch Suite</title>
+    <!-- Tailwind CSS for modern look -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js for lightweight, lightning-fast reactivity -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased flex flex-col" 
+      x-data="{ 
+        activeTab: 'overview',
+        employeeCount: 15,
+        sumInsured: 500000,
+        addons: {
+            maternity: false,
+            opd: false,
+            parents: false
+        },
+        completedSteps: {
+            p1s1: false, p1s2: false, p1s3: false,
+            p2s1: false,
+            p3s1: false, p3s2: false,
+            p4s1: false,
+            p5s1: false, p5s2: false,
+            p6s1: false
+        },
+        copiedText: '',
+        showToast: false,
+        toastMessage: '',
+        triggerToast(msg) {
+            this.toastMessage = msg;
+            this.showToast = true;
+            setTimeout(() => { this.showToast = false; }, 2500);
+        },
+        copyToClipboard(text, id) {
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = text;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                this.triggerToast('Copied to clipboard successfully!');
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(tempTextArea);
+        },
+        get estimatedCost() {
+            let baseRate = 5500;
+            if (this.sumInsured === 500000) baseRate = 7800;
+            if (this.sumInsured === 1000000) baseRate = 11500;
+
+            let addonsCost = 0;
+            if (this.addons.maternity) addonsCost += 2800;
+            if (this.addons.opd) addonsCost += 1800;
+            if (this.addons.parents) addonsCost += 5200;
+
+            const ratePerUser = baseRate + addonsCost;
+            const low = Math.round(ratePerUser * 0.85);
+            const high = Math.round(ratePerUser * 1.15);
+
+            const minAnnual = low * this.employeeCount;
+            const maxAnnual = high * this.employeeCount;
+
+            return {
+                perUser: `${low.toLocaleString('en-IN')} - ${high.toLocaleString('en-IN')}`,
+                totalAnnual: `${minAnnual.toLocaleString('en-IN')} - ${maxAnnual.toLocaleString('en-IN')}`
+            };
+        }
+      }">
+
+    <!-- Top Professional Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="bg-gradient-to-tr from-indigo-600 to-indigo-800 text-white font-black text-xl px-3.5 py-1.5 rounded-xl tracking-tight shadow-md">VIS</span>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-900 leading-tight">GHI Launch Dashboard</h1>
+                        <p class="text-xs text-slate-500 font-medium">Employee Health Protection Plan • 2026 Strategy</p>
+                    </div>
+                </div>
+                
+                <!-- Quick Action Indicators -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1.5 border border-emerald-100">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Ready to Launch</span>
+                    </div>
+                    <div class="text-xs text-slate-400">
+                        Welcome, <span class="font-semibold text-slate-600">Aditi</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+        
+        <!-- Navigation Tabs Bar -->
+        <div class="flex overflow-x-auto space-x-2 bg-slate-200/60 p-1.5 rounded-2xl mb-8 no-scrollbar">
+            <button 
+                @click="activeTab = 'overview'"
+                :class="activeTab === 'overview' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                📋 Overview & Strategy
+            </button>
+            <button 
+                @click="activeTab = 'journey'"
+                :class="activeTab === 'journey' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                🛣️ Employee Journey
+            </button>
+            <button 
+                @click="activeTab = 'calculator'"
+                :class="activeTab === 'calculator' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                🧮 Cost Estimator
+            </button>
+            <button 
+                @click="activeTab = 'providers'"
+                :class="activeTab === 'providers' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                🏥 Shop Providers
+            </button>
+            <button 
+                @click="activeTab = 'funnel'"
+                :class="activeTab === 'funnel' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                ⚡ Execution Checklist
+            </button>
+            <button 
+                @click="activeTab = 'branding'"
+                :class="activeTab === 'branding' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                class="flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            >
+                📢 Hiring Ad Copy
+            </button>
+        </div>
+
+        <!-- Tab 1: Overview -->
+        <div x-show="activeTab === 'overview'" class="space-y-8">
+            <!-- Quick Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white p-6 rounded-3xl shadow-md relative overflow-hidden">
+                    <h3 class="text-white/80 text-xs uppercase font-extrabold tracking-wider">Recommended Coverage</h3>
+                    <p class="text-4xl font-extrabold mt-1">₹5 Lakhs</p>
+                    <p class="text-xs text-white/70 mt-2">Comprehensive hospitalization & active cashless network.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-slate-400 text-xs uppercase font-extrabold tracking-wider">Employee Grace Period</h3>
+                            <p class="text-4xl font-extrabold text-slate-800 mt-1">90 Days</p>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-700 font-semibold text-xs px-2.5 py-1 rounded-full">After Probation</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Protects VIS against high short-term turnover premiums.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-slate-400 text-xs uppercase font-extrabold tracking-wider">Launch Timeline</h3>
+                            <p class="text-4xl font-extrabold text-emerald-600 mt-1">Immediate</p>
+                        </div>
+                        <span class="bg-emerald-50 text-emerald-700 font-semibold text-xs px-2.5 py-1 rounded-full">For Existing</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Instant morale boost & premium retention value for current team.</p>
+                </div>
+            </div>
+
+            <!-- Eligibility Grid -->
+            <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="text-xl font-bold text-slate-900">1. Defining Your GHI Eligibility Matrix</h2>
+                    <p class="text-sm text-slate-500 mt-1">Easily control VIS budget limits and maximize insurance utilization.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200">
+                    <!-- Inclusion Card -->
+                    <div class="bg-white p-6 sm:p-8">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <span class="bg-emerald-50 text-emerald-700 p-2 rounded-xl border border-emerald-100">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            </span>
+                            <h3 class="text-lg font-bold text-slate-800">Who is Eligible</h3>
+                        </div>
+                        <ul class="space-y-3 text-slate-600 text-sm leading-relaxed">
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-emerald-500 mt-0.5">✔</span>
+                                <span><strong>Full-time confirmed employees:</strong> Core roster driving VIS growth.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-emerald-500 mt-0.5">✔</span>
+                                <span><strong>Minimum 7 active lives:</strong> Requirement by IRDAI to register. Can include immediate dependents.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-emerald-500 mt-0.5">✔</span>
+                                <span><strong>Existing core team:</strong> Activated immediately to celebrate the corporate milestone!</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Exclusion Card -->
+                    <div class="bg-white p-6 sm:p-8">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <span class="bg-rose-50 text-rose-700 p-2 rounded-xl border border-rose-100">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </span>
+                            <h3 class="text-lg font-bold text-slate-800">Initially Excluded</h3>
+                        </div>
+                        <ul class="space-y-3 text-slate-600 text-sm leading-relaxed">
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-rose-500 mt-0.5">✘</span>
+                                <span><strong>Interns & Short-term hires:</strong> Exclude to avoid paying unrecoverable setup fees.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-rose-500 mt-0.5">✘</span>
+                                <span><strong>Freelancers & Consultants:</strong> Recommended to manage on normal invoice fee-terms.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="text-rose-500 mt-0.5">✘</span>
+                                <span><strong>Part-time / Temp roles:</strong> Keeps VIS administration lean and completely compliant.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="p-4 bg-indigo-50 border-t border-slate-100 flex items-start space-x-3 text-xs text-indigo-900 leading-relaxed">
+                    <svg class="w-5 h-5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p>
+                        <strong>Why this is best practice:</strong> This balanced setup prevents high premium outlays on staff who might transition quickly. It establishes a standard, high-value corporate badge for your key builders.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Strategy / Core Values -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="text-lg font-bold text-slate-900">Why a 90-Day Probation Window?</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Enrolling employees on Day 1 can inflate insurance costs for startups because of administrative overhead and early-stage dropouts. 
+                    </p>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3 text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-700 shrink-0">1</div>
+                            <span class="text-xs">Saves company cost from temporary trial hires.</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-700 shrink-0">2</div>
+                            <span class="text-xs">Adds strong psychological incentive to complete probation.</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-700 shrink-0">3</div>
+                            <span class="text-xs">Perfectly standard practice for fast-growing Indian organizations.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-sm space-y-4 relative overflow-hidden">
+                    <h3 class="text-lg font-bold">The Strategic ROI for VIS</h3>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <h4 class="text-emerald-400 font-extrabold text-lg">74%</h4>
+                            <p class="text-xs text-white/70">Increase in candidate trust when insurance is listed in job posts.</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <h4 className="text-indigo-400 font-extrabold text-lg" style="color: #818cf8;">2.3x</h4>
+                            <p class="text-xs text-white/70">Better retention among key tech and sales players.</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-white/60 leading-relaxed pt-2">
+                        Health security is no longer an optional perk in India; it's an essential hygiene benefit that demonstrates strong institutional stability.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Employee Journey Flowchart -->
+        <div x-show="activeTab === 'journey'" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">Visual Workflow</span>
+                <h2 class="text-2xl font-bold text-slate-900">The VIS Employee GHI Journey</h2>
+                <p class="text-sm text-slate-500">How probation tracking aligns with active premium deployment.</p>
+            </div>
+
+            <!-- Flowchart Steps -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 relative items-center">
+                <!-- Step 1 -->
+                <div class="bg-slate-50 border border-slate-200 p-5 rounded-2xl relative flex flex-col justify-between h-full hover:shadow-md transition">
+                    <div>
+                        <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mb-3 shadow-sm">
+                            1
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Joining Day</h4>
+                        <p class="text-xs text-slate-500 mt-1">New employee starts with VIS. HR adds details to the master tracker.</p>
+                    </div>
+                    <span class="text-xs font-extrabold text-indigo-600 mt-4 tracking-wider">DAY 0</span>
+                </div>
+
+                <!-- Arrow Connector -->
+                <div class="hidden lg:flex justify-center text-slate-300">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-slate-50 border border-slate-200 p-5 rounded-2xl relative flex flex-col justify-between h-full hover:shadow-md transition">
+                    <div>
+                        <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mb-3 shadow-sm">
+                            2
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Probation Watch</h4>
+                        <p class="text-xs text-slate-500 mt-1">Employee works through the first three months. No premium is paid yet.</p>
+                    </div>
+                    <span class="text-xs font-extrabold text-slate-500 mt-4 tracking-wider">MONTHS 1 - 3</span>
+                </div>
+
+                <!-- Arrow Connector -->
+                <div class="hidden lg:flex justify-center text-slate-300">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl relative flex flex-col justify-between h-full hover:shadow-md transition">
+                    <div>
+                        <div class="bg-emerald-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mb-3 shadow-sm">
+                            3
+                        </div>
+                        <h4 class="font-bold text-emerald-900 text-sm">Active Trigger</h4>
+                        <p class="text-xs text-emerald-800 mt-1">HR flags active status and triggers an endorsement on the GHI portal.</p>
+                    </div>
+                    <span class="text-xs font-extrabold text-emerald-600 mt-4 tracking-wider">DAY 90+</span>
+                </div>
+            </div>
+
+            <!-- HR Internal Process Box -->
+            <div class="bg-indigo-50/50 rounded-3xl border border-indigo-100 p-6 sm:p-8">
+                <h3 class="font-bold text-indigo-900 mb-4 text-base">CRITICAL HR REQUIREMENT: The CD Account</h3>
+                <p class="text-sm text-slate-700 leading-relaxed mb-4">
+                    To guarantee instant additions, VIS will maintain a **CD (Continuous Deposit) Account** with the insurer (often managed seamlessly inside modern dashboards like Plum). 
+                    As soon as an employee completes their 90 days, the premium is automatically deducted from this pre-funded balance, issuing their active card within hours.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-white p-4 rounded-2xl border border-indigo-100/50">
+                        <span class="text-slate-400 font-bold block">Step A</span>
+                        <p class="text-slate-750 font-medium mt-1">Keep ₹15,000 as a revolving safety deposit in the CD balance.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-indigo-100/50">
+                        <span class="text-slate-400 font-bold block">Step B</span>
+                        <p class="text-slate-750 font-medium mt-1">HR updates employee list on the portal weekly.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-indigo-100/50">
+                        <span class="text-slate-400 font-bold block">Step C</span>
+                        <p class="text-slate-750 font-medium mt-1">Policy active. Direct cashless health cards issued instantly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Cost & Premium Estimator -->
+        <div x-show="activeTab === 'calculator'" class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/60">
+                <h2 class="text-xl font-bold text-slate-900">3. Interactive VIS Premium Estimator</h2>
+                <p class="text-sm text-slate-500">Estimate your annual GHI expenditure with different sum insured amounts and benefits.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2">
+                <!-- Controls Column -->
+                <div class="p-6 sm:p-8 space-y-6 border-r border-slate-200">
+                    <!-- Employee Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-semibold text-slate-700">Estimated Core Employee Count</label>
+                            <span class="bg-indigo-100 text-indigo-700 text-xs font-extrabold px-3 py-1 rounded-full" x-text="employeeCount + ' Employees'"></span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="7" 
+                            max="150" 
+                            x-model.number="employeeCount"
+                            class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                        <span class="text-[10px] text-slate-400 block mt-1">Note: Min 7 employees are required to initiate policy</span>
+                    </div>
+
+                    <!-- Sum Insured Selectors -->
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700 block mb-2">Desired Sum Insured (Cover limit)</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button
+                                @click="sumInsured = 300000"
+                                :class="sumInsured === 300000 ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 shadow-sm' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
+                                class="p-3 rounded-2xl border text-left transition"
+                            >
+                                <span class="block text-sm font-bold">₹3 Lakhs</span>
+                                <span class="block text-[9px] mt-0.5 opacity-80">Basic Entry Cover</span>
+                            </button>
+                            <button
+                                @click="sumInsured = 500000"
+                                :class="sumInsured === 500000 ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 shadow-sm' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
+                                class="p-3 rounded-2xl border text-left transition"
+                            >
+                                <span class="block text-sm font-bold">₹5 Lakhs</span>
+                                <span class="block text-[9px] mt-0.5 opacity-80">Highly Recommended</span>
+                            </button>
+                            <button
+                                @click="sumInsured = 1000000"
+                                :class="sumInsured === 1000000 ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 shadow-sm' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
+                                class="p-3 rounded-2xl border text-left transition"
+                            >
+                                <span class="block text-sm font-bold">₹10 Lakhs</span>
+                                <span class="block text-[9px] mt-0.5 opacity-80">Executive Premium</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Addons Checklist -->
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700 block mb-2">Add Additional Value Protections (Optional)</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center space-x-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                                <input 
+                                    type="checkbox"
+                                    x-model="addons.maternity"
+                                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5"
+                                />
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-800">Maternity Cover (9-Month waiver)</span>
+                                    <span class="block text-[10px] text-slate-400">Covers delivery costs immediately without a standard 9-month wait.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center space-x-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                                <input 
+                                    type="checkbox"
+                                    x-model="addons.opd"
+                                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5"
+                                />
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-800">OPD & Doctor Consultations</span>
+                                    <span class="block text-[10px] text-slate-400">Covers dental, vision, and out-patient clinical medicine.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center space-x-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                                <input 
+                                    type="checkbox"
+                                    x-model="addons.parents"
+                                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5"
+                                />
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-800">Add Parents Cover (Co-pay Model)</span>
+                                    <span class="block text-[10px] text-slate-400">Extends coverage to parents. Highly valued by current staff.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualized Output Column -->
+                <div class="p-6 sm:p-8 bg-slate-50/50 flex flex-col justify-between">
+                    <div class="space-y-6">
+                        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Estimated Outlay Summary</h3>
+                        
+                        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                            <div>
+                                <span class="text-xs text-slate-400 block font-medium">Estimated Premium / Employee / Year</span>
+                                <span class="text-2xl font-extrabold text-slate-800" x-text="'₹' + estimatedCost.perUser"></span>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-100">
+                                <span class="text-xs text-slate-400 block font-medium">Total Annual VIS Corporate Premium</span>
+                                <span class="text-3xl font-extrabold text-indigo-600" x-text="'₹' + estimatedCost.totalAnnual"></span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Selected Cover</span>
+                                <span class="font-semibold" x-text="(sumInsured/100000) + ' Lakhs'"></span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Maternity Option</span>
+                                <span class="font-semibold" x-text="addons.maternity ? 'Included' : 'None'"></span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>OPD Benefit</span>
+                                <span class="font-semibold" x-text="addons.opd ? 'Included' : 'None'"></span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Parental Cover</span>
+                                <span class="font-semibold" x-text="addons.parents ? 'Included' : 'None'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-slate-200 bg-white -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-6">
+                        <p class="text-[10px] text-slate-400 leading-normal">
+                            *Estimates are calculated using standard Indian insurance trends for average age brackets of 22-38 years. Final quotes may slightly differ after submitting concrete employee age profiles.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Provider Shopping Matrix -->
+        <div x-show="activeTab === 'providers'" class="space-y-8">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <h2 class="text-xl font-bold text-slate-900 mb-2">Compare Premium Providers</h2>
+                <p class="text-sm text-slate-500 mb-6">Explore pros and cons specifically weighted against early-stage VIS requirements.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Plum -->
+                    <div class="border border-slate-200 rounded-3xl p-6 relative flex flex-col justify-between hover:border-indigo-300 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-bold tracking-wider block">Insurtech Broker</span>
+                                    <h3 class="text-lg font-extrabold text-slate-800">Plum Insurance</h3>
+                                </div>
+                                <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    Most Recommended
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-3 mb-6 text-xs">
+                                <div>
+                                    <span class="font-bold text-emerald-600">Key Benefits:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Zero-paperwork digital dashboard</li>
+                                        <li>Excellent employee-facing mobile app</li>
+                                        <li>Fast setup (under 7 days)</li>
+                                        <li>Automated post-probation additions</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-rose-500">Considerations:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Slight premium service markups</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-3xl">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold">Ideal For:</span>
+                                <p class="text-[11px] text-slate-600 max-w-[200px] leading-tight">Tech-forward companies and teams looking for frictionless self-serve management.</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block font-semibold">Our Rating</span>
+                                <span class="text-sm font-bold text-slate-800">4.9/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HDFC ERGO -->
+                    <div class="border border-slate-200 rounded-3xl p-6 relative flex flex-col justify-between hover:border-indigo-300 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-bold tracking-wider block">Direct Insurer</span>
+                                    <h3 class="text-lg font-extrabold text-slate-800">HDFC ERGO</h3>
+                                </div>
+                                <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">
+                                    Strong Traditional Option
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-3 mb-6 text-xs">
+                                <div>
+                                    <span class="font-bold text-emerald-600">Key Benefits:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Massive hospital network in India</li>
+                                        <li>Highly trusted brand name</li>
+                                        <li>Exceptional direct cashless claims</li>
+                                        <li>Dedicated corporate support managers</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-rose-500">Considerations:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Manual follow-ups for mid-term additions</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-3xl">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold">Ideal For:</span>
+                                <p class="text-[11px] text-slate-600 max-w-[200px] leading-tight">Teams looking for ultimate brand reliability and direct ties with leading hospitals.</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block font-semibold">Our Rating</span>
+                                <span class="text-sm font-bold text-slate-800">4.7/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onsurity -->
+                    <div class="border border-slate-200 rounded-3xl p-6 relative flex flex-col justify-between hover:border-indigo-300 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-bold tracking-wider block">Insurtech Broker</span>
+                                    <h3 class="text-lg font-extrabold text-slate-800">Onsurity</h3>
+                                </div>
+                                <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border bg-purple-50 text-purple-700 border-purple-200">
+                                    Budget-Friendly Partner
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-3 mb-6 text-xs">
+                                <div>
+                                    <span class="font-bold text-emerald-600">Key Benefits:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Monthly subscription models</li>
+                                        <li>Highly flexible plans</li>
+                                        <li>Great for small counts (&lt;10)</li>
+                                        <li>Includes health credits and online doctor consults</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-rose-500">Considerations:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Claim support operates via TPA (Third-Party Admin)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-3xl">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold">Ideal For:</span>
+                                <p class="text-[11px] text-slate-600 max-w-[200px] leading-tight">Growing startups seeking immediate compliance with flexible operational spending.</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block font-semibold">Our Rating</span>
+                                <span class="text-sm font-bold text-slate-800">4.6/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ICICI Lombard -->
+                    <div class="border border-slate-200 rounded-3xl p-6 relative flex flex-col justify-between hover:border-indigo-300 transition">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-bold tracking-wider block">Direct Insurer</span>
+                                    <h3 class="text-lg font-extrabold text-slate-800">ICICI Lombard</h3>
+                                </div>
+                                <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                                    Corporate Powerhouse
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-3 mb-6 text-xs">
+                                <div>
+                                    <span class="font-bold text-emerald-600">Key Benefits:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Industry pioneer in bulk plans</li>
+                                        <li>Top-tier digital apps for claims</li>
+                                        <li>Stable pricing trends year-on-year</li>
+                                        <li>Seamless cashless approvals</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-rose-500">Considerations:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-600">
+                                        <li>Higher minimum employee count preferences</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-3xl">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold">Ideal For:</span>
+                                <p class="text-[11px] text-slate-600 max-w-[200px] leading-tight">SMEs aiming to consolidate large rosters with rock-solid, multi-city operations.</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block font-semibold">Our Rating</span>
+                                <span class="text-sm font-bold text-slate-800">4.5/5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions to Ask Providers Card -->
+            <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-6">
+                <h3 class="text-lg font-bold">Aditi's Guide: Questions to Ask Insurance Providers</h3>
+                <p class="text-xs text-slate-400">Ask these exact questions when you connect with the shortlisted brokers to secure the best deal:</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="font-bold text-indigo-400 block mb-1">Pre-Existing Diseases</span>
+                        <p class="text-white/80 leading-normal">
+                            "Is there a waiting period for Pre-Existing Diseases (PED), or are they covered from Day 1 of employee activation?"
+                        </p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="font-bold text-indigo-400 block mb-1">CD Account Minimums</span>
+                        <p class="text-white/80 leading-normal">
+                            "What is the minimum reserve balance required in our CD Account to trigger post-probation additions instantly?"
+                        </p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <span class="font-bold text-indigo-400 block mb-1">Cashless Hospital Cap</span>
+                        <p class="text-white/80 leading-normal">
+                            "What is your cashless settlement turnaround time (TAT), and what network hospitals do you support near our main hubs?"
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Complete Execution Funnel -->
+        <div x-show="activeTab === 'funnel'" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">VIS GHI Execution Funnel</h2>
+                    <p class="text-sm text-slate-500">Work through this setup pipeline to deploy GHI efficiently.</p>
+                </div>
+                <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">
+                    Interactive Checklist
+                </span>
+            </div>
+
+            <!-- Checklist Pipeline -->
+            <div class="space-y-6 text-xs sm:text-sm">
+                
+                <!-- Phase 1 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 1: Internal Policy Finalization</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p1s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p1s1 ? 'line-through text-slate-400' : 'text-slate-700'">Finalize Employee Eligibility rules (Full-time confirmed only, exclude temporary staff)</span>
+                        </label>
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p1s2" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p1s2 ? 'line-through text-slate-400' : 'text-slate-700'">Approve the 90-day probation waiting rule for new recruits</span>
+                        </label>
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p1s3" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p1s3 ? 'line-through text-slate-400' : 'text-slate-700'">Freeze baseline coverage limit at ₹5 Lakhs for optimal protection vs cost ratio</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 2: Roster Data Structuring</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p2s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p2s1 ? 'line-through text-slate-400' : 'text-slate-700'">Consolidate Employee Roster (Names, Exact Dates of Birth, Gender, Core Locations)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 3: Shopping & Negotiations</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p3s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p3s1 ? 'line-through text-slate-400' : 'text-slate-700'">Submit requests to Plum HQ and direct insurers like HDFC Ergo & Onsurity</span>
+                        </label>
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p3s2" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p3s2 ? 'line-through text-slate-400' : 'text-slate-700'">Negotiate the Waiver of Pre-existing Diseases to guarantee active covers immediately</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Phase 4 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 4: Provider Lock-In</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p4s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p4s1 ? 'line-through text-slate-400' : 'text-slate-700'">Complete corporate onboarding and finalize the revolving CD deposit account setup</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Phase 5 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 5: Internal Rollout (Morale Strategy)</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p5s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p5s1 ? 'line-through text-slate-400' : 'text-slate-700'">Announce immediate activation to existing confirmed employees</span>
+                        </label>
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p5s2" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p5s2 ? 'line-through text-slate-400' : 'text-slate-700'">Deliver simple onboarding webinar details & digital health card downloads to the team</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Phase 6 -->
+                <div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/40">
+                    <h3 class="font-extrabold text-indigo-600 uppercase tracking-wider mb-3">Phase 6: Hiring & Employer Branding integration</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start space-x-3 cursor-pointer">
+                            <input type="checkbox" x-model="completedSteps.p6s1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 mt-0.5" />
+                            <span :class="completedSteps.p6s1 ? 'line-through text-slate-400' : 'text-slate-700'">Add the insurance benefits block to job descriptions & LinkedIn postings</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Tab 6: Employer Branding Ad Copy Hub -->
+        <div x-show="activeTab === 'branding'" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">VIS Hiring & Brand Ad Copy Hub</h2>
+                <p class="text-sm text-slate-500">Copy-paste optimized text snippets designed to attract top tier talent to VIS.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Card 1: Job Descriptions -->
+                <div class="border border-slate-200 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 block mb-1">For Job Descriptions</span>
+                        <h4 class="font-bold text-slate-800 text-sm mb-3">Standard JD Footer</h4>
+                        <div class="bg-slate-50 p-3 rounded-2xl text-xs text-slate-600 font-mono select-all overflow-y-auto max-h-[140px] whitespace-pre-wrap leading-relaxed">🎁 Health &amp; Wellness Benefits:
+We've got your back! VIS offers comprehensive Group Health Insurance (₹5 Lakhs Hospitalization Cover &amp; Cashless treatment) to all full-time confirmed employees immediately following their probation period.</div>
+                    </div>
+                    <button
+                        @click="copyToClipboard(`🎁 Health & Wellness Benefits:\nWe've got your back! VIS offers comprehensive Group Health Insurance (₹5 Lakhs Hospitalization Cover & Cashless treatment) to all full-time confirmed employees immediately following their probation period.`, 'jd')"
+                        class="mt-4 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                    >
+                        <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                        <span>Copy to Clipboard</span>
+                    </button>
+                </div>
+
+                <!-- Card 2: Offer Letters -->
+                <div class="border border-slate-200 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 block mb-1">For Offer Letters</span>
+                        <h4 class="font-bold text-slate-800 text-sm mb-3">Standard Offer Clause</h4>
+                        <div class="bg-slate-50 p-3 rounded-2xl text-xs text-slate-600 font-mono select-all overflow-y-auto max-h-[140px] whitespace-pre-wrap leading-relaxed">Health Benefits: Upon successful completion of your 90-day probation period and confirmation as a full-time employee, you will be enrolled in the VIS Group Health Insurance Program. This policy grants you ₹5,00,000 (₹5 Lakhs) of comprehensive medical cover with active cashless claim support at major empanelled hospitals across India.</div>
+                    </div>
+                    <button
+                        @click="copyToClipboard('Health Benefits: Upon successful completion of your 90-day probation period and confirmation as a full-time employee, you will be enrolled in the VIS Group Health Insurance Program. This policy grants you ₹5,00,000 (₹5 Lakhs) of comprehensive medical cover with active cashless claim support at major empanelled hospitals across India.', 'offer')"
+                        class="mt-4 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                    >
+                        <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                        <span>Copy to Clipboard</span>
+                    </button>
+                </div>
+
+                <!-- Card 3: Social & LinkedIn Posts -->
+                <div class="border border-slate-200 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 block mb-1">For Social Channels</span>
+                        <h4 class="font-bold text-slate-800 text-sm mb-3">LinkedIn Announcement</h4>
+                        <div class="bg-slate-50 p-3 rounded-2xl text-xs text-slate-600 font-mono select-all overflow-y-auto max-h-[140px] whitespace-pre-wrap leading-relaxed">🚀 WE ARE HIRING! 🚀
+
+At VIS, we believe our people are our strongest asset. That's why we're proud to announce that all our team members get premium health protection! 
+
+🏥 Premium Group Health Insurance (₹5 Lakhs Cover)
+💳 Seamless cashless treatment &amp; digital health cards
+🛡️ Zero-day waiting period for pre-existing illnesses post-probation
+
+Join a team that cares about your tomorrow. Apply today!</div>
+                    </div>
+                    <button
+                        @click="copyToClipboard(`🚀 WE ARE HIRING! 🚀\n\nAt VIS, we believe our people are our strongest asset. That's why we're proud to announce that all our team members get premium health protection! \n\n🏥 Premium Group Health Insurance (₹5 Lakhs Cover)\n💳 Seamless cashless treatment & digital health cards\n🛡️ Zero-day waiting period for pre-existing illnesses post-probation\n\nJoin a team that cares about your tomorrow. Apply today!`, 'linkedin')"
+                        class="mt-4 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                    >
+                        <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                        <span>Copy to Clipboard</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Global Toast notification banner -->
+    <div x-show="showToast" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-4"
+         class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-slate-850 flex items-center space-x-2 z-50"
+         style="display: none;">
+        <span class="text-emerald-400">✔</span>
+        <span x-text="toastMessage"></span>
+    </div>
+
+    <!-- Corporate Disclaimer Footer -->
+    <footer class="bg-slate-900 text-white/50 border-t border-slate-800 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center text-xs">
+            <div class="space-y-1 text-center md:text-left">
+                <p class="font-bold text-white/80">VIS Group Health Insurance Launch Suite</p>
+                <p>© 2026 VIS Organization. All rights reserved.</p>
+            </div>
+            <div class="mt-4 md:mt-0 space-x-4 flex">
+                <span>Prepared for Aditi</span>
+                <span>•</span>
+                <span>Authorized Corporate Deployment Only</span>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
